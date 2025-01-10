@@ -20,11 +20,12 @@ typedef struct {
     int collisions;
 } HashTable;
 
+int char_to_int(char c);
 HashTable* allocate_table(int table_size);
 void deallocate_table(HashTable* table, int table_size);
-Employee* allocate_employee(const char* id, const char* name, const char* role, float salary);
-int hash_a(char* id, int table_size);
-int hash_b(char* id, int table_size);
+Employee* allocate_employee(Employee new_employee);
+int hash_rotate(char* id, int table_size);
+int hash_fold_shift(char* id, int table_size);
 void insert_a(HashTable* table, int table_size, Employee employee);
 void insert_b(HashTable* table, int table_size, Employee employee);
 void generate_data(Employee* employees, int quantity);

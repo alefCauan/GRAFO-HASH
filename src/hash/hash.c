@@ -2,109 +2,160 @@
 
 
 // Função para alocar memória para a tabela hash
-HashTable* allocate_table(int table_size) {
+HashTable* allocate_table(int table_size) 
+{
     HashTable* table = (HashTable*)malloc(table_size * sizeof(HashTable));
-    if (table == NULL) {
+
+    if (table == NULL) 
+    {
         fprintf(stderr, "Failed to allocate memory for the hash table.\n");
         exit(EXIT_FAILURE);
     }
-    for (int i = 0; i < table_size; i++) {
+
+    for (int i = 0; i < table_size; i++) 
+    {
         table[i].employee = NULL;
         table[i].collisions = 0;
     }
+
     return table;
 }
 
-// Função para desalocar memória da tabela hash
-void deallocate_table(HashTable* table, int table_size) {
-    for (int i = 0; i < table_size; i++) {
-        if (table[i].employee != NULL) {
+void deallocate_table(HashTable* table, int table_size) 
+{
+    for (int i = 0; i < table_size; i++) 
+    {
+        if (table[i].employee != NULL) 
             free(table[i].employee);
-        }
     }
+
     free(table);
 }
 
 // Função para alocar memória para um funcionário
-Employee* allocate_employee(const char* id, const char* name, const char* role, float salary) {
+Employee* allocate_employee(Employee new_employee) 
+{
     Employee* employee = (Employee*)malloc(sizeof(Employee));
-    if (employee == NULL) {
+
+    if (employee == NULL) 
+    {
         fprintf(stderr, "Failed to allocate memory for employee.\n");
         exit(EXIT_FAILURE);
     }
-    strncpy(employee->id, id, ID_SIZE);
-    strncpy(employee->name, name, sizeof(employee->name));
-    strncpy(employee->role, role, sizeof(employee->role));
-    employee->salary = salary;
+
+    memcpy(employee, &new_employee, sizeof(Employee));
+
     return employee;
 }
 
 // Função de hashing (a) - Rotação de 2 dígitos para a esquerda
-int hash_a(char* id, int table_size) {
+int hash_rotate(char* id, int table_size) 
+{
     char rotated[ID_SIZE];
-    strncpy(rotated, id + 2, 4);
-    strncpy(rotated + 4, id, 2);
+
+    strncpy(rotated, id + 4, 2);
+    strncpy(rotated + 2, id, 4);
     rotated[6] = '\0';
 
-    int d2 = rotated[1] - '0';
-    int d4 = rotated[3] - '0';
-    int d6 = rotated[5] - '0';
+    int d2 = char_to_int(rotated[1]);
+    int d4 = char_to_int(rotated[3]);
+    int d6 = char_to_int(rotated[5]);
 
     int sum = d2 + d4 + d6;
+
     return sum % table_size;
+}
+
+
+
+int char_to_int(char c)
+{
+    return c - '0';
 }
 
 // Função de hashing (b) - Fold shift
-int hash_b(char* id, int table_size) {
-    int group1 = (id[0] - '0') * 100 + (id[2] - '0') * 10 + (id[5] - '0');
-    int group2 = (id[1] - '0') * 100 + (id[3] - '0') * 10 + (id[4] - '0');
+int hash_fold_shift(char* id, int table_size) 
+{
+    int group1 = (char_to_int(id[0])) * 100 + (char_to_int(id[2])) * 10 + (char_to_int(id[5]));
+    int group2 = (char_to_int(id[1])) * 100 + (char_to_int(id[3])) * 10 + (char_to_int(id[4]));
 
     int sum = group1 + group2;
+
     return sum % table_size;
 }
 
-// Insere na tabela com tratamento de colisão para hashing (a)
-void insert_a(HashTable* table, int table_size, Employee employee) {
-    int position = hash_a(employee.id, table_size);
+void insert_a(HashTable* table, int table_size, Employee employee) 
+{
+    int initial_pos = hash_rotate(employee.id, table_size) % table_size;
+    int position = initial_pos;
     int increment = employee.id[0] - '0';
+    int inserted = 0;
 
-    for (int i = 0; i < table_size; i++) {
-        int attempt = (position + i * increment) % table_size;
-        if (table[attempt].employee == NULL) {
-            table[attempt].employee = allocate_employee(employee.id, employee.name, employee.role, employee.salary);
-            return;
-        } else {
-            table[attempt].collisions++;
+    do {
+        if (table[position].employee == NULL) 
+        {
+            inserted = 1;
+            table[position].employee = allocate_employee(employee);
+        } 
+        else 
+        {
+            table[position].collisions++;
+            // todas as possiveis interpretações de como seria 
+            // o calculo para as colisões do hash de A
+
+            position = ((position % table_size) + increment + 1);
+            // position = ((position % table_size) + 1) + increment;
+            // position = position + increment;
         }
-    }
+    } 
+    while (!inserted && position != initial_pos && position < table_size);
 
-    // Substitui na primeira posição se a tabela estiver cheia
-    free(table[position].employee);
-    table[position].employee = allocate_employee(employee.id, employee.name, employee.role, employee.salary);
+    if (!inserted) 
+    {
+        free(table[initial_pos].employee);
+        table[initial_pos].employee = allocate_employee(employee);
+    }
 }
 
-// Insere na tabela com tratamento de colisão para hashing (b)
-void insert_b(HashTable* table, int table_size, Employee employee) {
-    int position = hash_b(employee.id, table_size);
 
-    for (int i = 0; i < table_size; i++) {
-        int attempt = (position + i * 7) % table_size;
-        if (table[attempt].employee == NULL) {
-            table[attempt].employee = allocate_employee(employee.id, employee.name, employee.role, employee.salary);
-            return;
-        } else {
-            table[attempt].collisions++;
+void insert_b(HashTable* table, int table_size, Employee employee) 
+{
+    int initial_pos = hash_fold_shift(employee.id, table_size) % table_size;
+    int position = initial_pos;
+    int inserted = 0;
+
+    do {
+        if (table[position].employee == NULL) 
+        {
+            inserted = 1;
+            table[position].employee = allocate_employee(employee);
+        } 
+        else 
+        {
+            table[position].collisions++;
+            
+            // todas as possiveis interpretações de como seria 
+            // o calculo para as colisões do hash de B
+
+            position = ((position % table_size) + 7 + 1);
+            // position = ((position % table_size) + 1) + 7;
+            // position = position  + 7;
         }
-    }
+    } 
+    while (!inserted && position != initial_pos && position < table_size);
 
-    // Substitui na primeira posição se a tabela estiver cheia
-    free(table[position].employee);
-    table[position].employee = allocate_employee(employee.id, employee.name, employee.role, employee.salary);
+    if (!inserted) 
+    {
+        free(table[initial_pos].employee);
+        table[initial_pos].employee = allocate_employee(employee);
+    }
 }
 
 // Gera dados fictícios de funcionários
-void generate_data(Employee* employees, int quantity) {
-    for (int i = 0; i < quantity; i++) {
+void generate_data(Employee* employees, int quantity) 
+{
+    for (int i = 0; i < quantity; i++) 
+    {
         sprintf(employees[i].id, "%06d", rand() % 1000000);
         sprintf(employees[i].name, "Employee%d", i + 1);
         sprintf(employees[i].role, "Role%d", rand() % 10);
@@ -113,14 +164,16 @@ void generate_data(Employee* employees, int quantity) {
 }
 
 // Imprime estatísticas da tabela
-void print_statistics(HashTable* table, int table_size) {
+void print_statistics(HashTable* table, int table_size) 
+{
     int total_collisions = 0;
     int total_occupied = 0;
 
-    for (int i = 0; i < table_size; i++) {
-        if (table[i].employee != NULL) {
-            total_occupied++;
-        }
+    for (int i = 0; i < table_size; i++) 
+    {
+        if (table[i].employee != NULL) 
+            total_occupied++;  
+
         total_collisions += table[i].collisions;
     }
 
