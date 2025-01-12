@@ -134,7 +134,7 @@ void show_graph(Graph *graph)
     for (int i = 0; i < MAX_STATES; ++i)
     {
         printf("vertex %d: ", i);
-        for (int j = 0; j < NUM_PINS; j++)
+        for (int j = 0; j < NUM_DISKS; j++)
             printf("%d ", graph[i].states[j]);
         printf("\n");
     }

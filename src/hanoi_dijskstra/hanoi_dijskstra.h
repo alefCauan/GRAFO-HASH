@@ -8,9 +8,9 @@
 #include <limits.h>
 #include <stdbool.h>
 
-#define MAX_STATES 256  // 4^3 possíveis estados
 #define NUM_DISKS 4
 #define NUM_PINS 3
+#define MAX_STATES 81 // 3⁴
 
 typedef struct {
     int states[NUM_DISKS];
